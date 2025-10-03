@@ -15,14 +15,27 @@
   <h1>אתגר היומיום</h1>
 
   <div id="auth-container">
-    <h2>התחבר / הירשם עם Google או אימייל</h2>
+    <h2>התחבר / הירשם</h2>
+
+    <!-- Google -->
     <button onclick="signInWithGoogle()">התחבר עם Google</button>
     <hr>
+
+    <!-- Email/Password -->
     <input type="email" id="email" placeholder="אימייל">
     <input type="password" id="password" placeholder="סיסמה">
     <br>
     <button onclick="signUp()">הרשמה</button>
     <button onclick="signIn()">התחברות</button>
+    <hr>
+
+    <!-- Phone/SMS -->
+    <input type="text" id="phoneNumber" placeholder="מספר טלפון עם קידומת +972">
+    <button onclick="sendOTP()">שלח קוד</button>
+    <br>
+    <input type="text" id="otp" placeholder="הכנס קוד שקיבלת">
+    <button onclick="verifyOTP()">אמת קוד</button>
+    <div id="recaptcha-container"></div>
   </div>
 
   <div id="welcome" style="display:none;">
@@ -37,7 +50,7 @@
 
   <script>
     // ======================
-    //  קונפיגורציית Firebase
+    // Firebase Config
     // ======================
     const firebaseConfig = {
       apiKey: "AIzaSyC3mC1SpEqCcJ_3OV51P5dQafxhaBiNXMQ",
@@ -52,7 +65,7 @@
     const auth = firebase.auth();
 
     // ======================
-    //  רשימת אתגרים
+    // Challenges
     // ======================
     const challenges = [
       "צייר משהו בתוך 2 דקות בלבד!",
@@ -74,26 +87,23 @@
     }
 
     // ======================
-    //  התחברות עם Google
+    // Google Sign-In
     // ======================
     function signInWithGoogle() {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
-        .then(result => showWelcome())
+        .then(() => showWelcome())
         .catch(error => alert(error.message));
     }
 
     // ======================
-    //  הרשמה והתחברות עם אימייל וסיסמה
+    // Email/Password
     // ======================
     function signUp() {
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          alert('נרשמת בהצלחה!');
-          showWelcome();
-        })
+        .then(() => showWelcome())
         .catch(error => alert(error.message));
     }
 
@@ -101,10 +111,42 @@
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       auth.signInWithEmailAndPassword(email, password)
-        .then(userCredential => showWelcome())
+        .then(() => showWelcome())
         .catch(error => alert(error.message));
     }
 
+    // ======================
+    // Phone/SMS
+    // ======================
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+      'size': 'invisible',
+      'callback': function(response) {}
+    });
+
+    function sendOTP() {
+      const phoneNumber = document.getElementById('phoneNumber').value;
+      const appVerifier = window.recaptchaVerifier;
+      auth.signInWithPhoneNumber(phoneNumber, appVerifier)
+        .then(confirmationResult => {
+          window.confirmationResult = confirmationResult;
+          alert("הקוד נשלח למספר שלך!");
+        })
+        .catch(error => alert(error.message));
+    }
+
+    function verifyOTP() {
+      const code = document.getElementById('otp').value;
+      window.confirmationResult.confirm(code)
+        .then(() => {
+          alert("התחברת בהצלחה!");
+          showWelcome();
+        })
+        .catch(error => alert(error.message));
+    }
+
+    // ======================
+    // Common
+    // ======================
     function signOut() {
       auth.signOut().then(() => location.reload());
     }
